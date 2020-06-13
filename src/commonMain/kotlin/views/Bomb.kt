@@ -1,15 +1,14 @@
 package views
 
+import com.soywiz.klock.milliseconds
 import com.soywiz.klock.seconds
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
-import com.soywiz.korge.view.Container
-import com.soywiz.korge.view.View
-import com.soywiz.korge.view.anchor
-import com.soywiz.korge.view.circle
-import com.soywiz.korim.color.Colors
+import com.soywiz.korge.view.*
+import com.soywiz.korim.format.readBitmap
 import com.soywiz.korio.async.delay
 import com.soywiz.korio.async.launch
+import com.soywiz.korio.file.std.resourcesVfs
 import kotlinx.coroutines.GlobalScope
 
 class Bomb: Container() {
@@ -18,25 +17,31 @@ class Bomb: Container() {
         EXPLOTING
     }
 
-    private var bombView: View = circle(5.0, color = Colors.BLUE){
-        anchor(.5, .5)
-    }
+    private lateinit var explodingView: Image
     var state: Bomb.State = Bomb.State.READY
+    private val rotationExploding = 300
 
-    init {
+    suspend fun loadBomb(){
         visible = false
+        state = Bomb.State.READY
+        scale = 0.0
+        val explodingView = image(resourcesVfs["game_scene/bomb/bomb_exploding.png"].readBitmap()){
+            anchor(.5, .5)
+            smoothing = false
+        }
     }
 
     fun explode() {
         visible = true
         state = State.EXPLOTING
         GlobalScope.launch {
-            delay(0.5.seconds)
-            this.tween(this::scale[3], time = 0.3.seconds)
-            delay(0.5.seconds)
-            this.tween(this::scale[0], time = 0.3.seconds)
+            this.tween(this::scale[1], this::rotationDegrees[800], time = 1.seconds)
+            this.tween(this::scale[3], this::rotationDegrees[rotationDegrees+400], time = 0.2.seconds)
+            this.tween(this::rotationDegrees[rotationDegrees+400], time = 0.2.seconds)
+            this.tween(this::scale[0], this::rotationDegrees[rotationDegrees+400], time = 0.2.seconds)
             visible = false
             scale = 1.0
+            rotationDegrees = 0.0
             state = State.READY
         }
     }
