@@ -32,7 +32,7 @@ class Enemy(val direction: Point): Container() {
 
     suspend fun loadEnemy(){
         state = Enemy.State.READY
-        val appearingViewMap = resourcesVfs["game_scene/enemy/enemy_appearing.png"].readBitmap()
+        val appearingViewMap = resourcesVfs["graphics/game_scene/enemy/enemy_appearing.png"].readBitmap()
         appearingView = Sprite(initialAnimation = SpriteAnimation(
                 spriteMap = appearingViewMap,
                 spriteWidth = 15,
@@ -43,7 +43,7 @@ class Enemy(val direction: Point): Container() {
         appearingView.spriteDisplayTime = 40.milliseconds
 
 
-        movingView = Image(resourcesVfs["game_scene/enemy/enemy_idle.png"].readBitmap(),
+        movingView = Image(resourcesVfs["graphics/game_scene/enemy/enemy_idle.png"].readBitmap(),
                 smoothing = false, anchorX = .5)
 
         addChild(appearingView)
@@ -56,11 +56,10 @@ class Enemy(val direction: Point): Container() {
         GlobalScope.launch {
             this@Enemy.tween(this@Enemy::scale[2.0], time = .3.seconds, easing = Easing.EASE_IN_OUT)
             this@Enemy.tween(this@Enemy::scale[1.0], time = .4.seconds, easing = Easing.EASE_IN_OUT)
+            state = Enemy.State.MOVING
         }
         appearingView.playAnimation()
         appearingView.onAnimationCompleted.once{
-            println("On Live animation completed")
-            state = Enemy.State.MOVING
             removeChildren()
             addChild(movingView)
         }

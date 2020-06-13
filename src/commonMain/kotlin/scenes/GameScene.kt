@@ -17,7 +17,6 @@ import views.Bomb
 import views.Enemy
 import views.Player
 import views.Score
-import kotlin.math.round
 import kotlin.random.Random
 
 class GameScene: Scene() {
@@ -30,6 +29,9 @@ class GameScene: Scene() {
     private lateinit var score: Score
     private lateinit var bg: Image
 
+    private var teleportPeriod = 8.seconds
+    private var teleportTimer = 0.seconds
+
     private var newEnemyPeriod = 3.seconds
     private var newEnemyTimer = 0.seconds
     private val numberOfEnemies:Int = 20
@@ -41,7 +43,7 @@ class GameScene: Scene() {
 
     override suspend fun Container.sceneInit() {
 
-        bg = image(resourcesVfs["game_scene/bg.png"].readBitmap()){
+        bg = image(resourcesVfs["graphics/game_scene/bg.png"].readBitmap()){
             smoothing = false
             tint = Colors.DARKGRAY
         }
@@ -64,7 +66,7 @@ class GameScene: Scene() {
             return enemy
         })
 
-        lights = image(resourcesVfs["game_scene/lights_glow.png"].readBitmap()){
+        lights = image(resourcesVfs["graphics/game_scene/lights_glow.png"].readBitmap()){
             tint = Colors.LIGHTPINK
             alpha = 0.5
             blendMode = BlendMode.HARDLIGHT
@@ -85,11 +87,18 @@ class GameScene: Scene() {
 
     private fun update(dt: TimeSpan): Unit{
 
-        newEnemyTimer += dt
-
         checkInput(dt)
+
+        newEnemyTimer += dt
         if( newEnemyTimer.seconds >= Random.nextDouble(newEnemyPeriod.seconds / 2, newEnemyPeriod.seconds)) {
             createEnemy(dt)
+            newEnemyTimer -= newEnemyPeriod
+        }
+
+        teleportTimer += dt
+        if( teleportTimer.seconds >= teleportPeriod.seconds) {
+            player.isTeleportActive = true
+            teleportTimer -= teleportPeriod
         }
 
         checkActiveEnemies(dt)
@@ -117,7 +126,7 @@ class GameScene: Scene() {
             }
 
             if (views.input.keys[Key.SPACE] && player.bomb.state == Bomb.State.READY) player.dropBomb(player.x, player.y)
-            if (views.input.keys[Key.S] && player.bomb.state == Bomb.State.READY) teleportPlayer()
+            if (views.input.keys[Key.X] && player.bomb.state == Bomb.State.READY && player.isTeleportActive) teleportPlayer()
 
         }
 
@@ -128,6 +137,7 @@ class GameScene: Scene() {
             val enemy = activeEnemies.first()
             player.teleport(enemy.x, enemy.y){
                 infectEnemy(enemy)
+                player.isTeleportActive = false
             }
         }
     }
@@ -157,10 +167,7 @@ class GameScene: Scene() {
                 Random.nextInt(fieldMargin, views.virtualHeight- fieldMargin))
         sceneView.addChildAt(newEnemy, enemiesIndex-1)
         activeEnemies.add(newEnemy)
-        GlobalScope.launch {
-            newEnemy.live()
-        }
-        newEnemyTimer -= newEnemyPeriod
+        newEnemy.live()
     }
 
     private fun checkActiveEnemies(dt: TimeSpan){
@@ -171,13 +178,13 @@ class GameScene: Scene() {
                 val enemy = iterator.next()
 
                 if(enemy.state == Enemy.State.MOVING && player.state == Player.State.MOVING){
-                    if(enemy.collidesWith(player)){
+                    if(enemy.collidesWith(player, CollisionKind.GLOBAL_RECT)){
                         paused = true
                         sceneContainer.changeToAsync<LoadingProxyScene>(
                                 LoadingProxyScene.NextScreen(MainScene::class),
                                 time = .5.seconds
                         )
-                    }else if(enemy.collidesWith(player.bomb) && player.bomb.state == Bomb.State.EXPLOTING){
+                    }else if(enemy.collidesWith(player.bomb, CollisionKind.GLOBAL_RECT) && player.bomb.state == Bomb.State.EXPLOTING){
                         killEnemy(enemy)
                     }
 

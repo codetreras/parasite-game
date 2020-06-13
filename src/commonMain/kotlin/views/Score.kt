@@ -1,7 +1,6 @@
 package views
 
 import com.soywiz.klock.TimeSpan
-import com.soywiz.klock.milliseconds
 import com.soywiz.klock.seconds
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
@@ -11,11 +10,9 @@ import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.format.readBitmap
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korma.interpolation.Easing
-import com.soywiz.korma.math.roundDecimalPlaces
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlin.math.round
-import kotlin.math.roundToInt
 
 class Score: Container() {
 
@@ -24,7 +21,7 @@ class Score: Container() {
     private lateinit var bg: Image
 
     suspend fun loadScore(){
-        bg = image(resourcesVfs["game_scene/score_bg.png"].readBitmap()){
+        bg = image(resourcesVfs["graphics/game_scene/score_bg.png"].readBitmap()){
             smoothing = false
         }
         score = text("0"){

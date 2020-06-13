@@ -23,7 +23,7 @@ suspend fun main() = Korge(Korge.Config(module = MainModule))
 object MainModule: Module(){
 
 	override val mainScene: KClass<out Scene>
-		get() = GameScene::class
+		get() = LoadingProxyScene::class
 	override val title: String
 		get() = "Parasite"
 	override val windowSize: SizeInt

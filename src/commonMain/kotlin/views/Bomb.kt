@@ -1,12 +1,10 @@
 package views
 
-import com.soywiz.klock.milliseconds
 import com.soywiz.klock.seconds
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
 import com.soywiz.korge.view.*
 import com.soywiz.korim.format.readBitmap
-import com.soywiz.korio.async.delay
 import com.soywiz.korio.async.launch
 import com.soywiz.korio.file.std.resourcesVfs
 import kotlinx.coroutines.GlobalScope
@@ -22,13 +20,13 @@ class Bomb: Container() {
     private val rotationExploding = 300
 
     suspend fun loadBomb(){
-        visible = false
         state = Bomb.State.READY
         scale = 0.0
-        val explodingView = image(resourcesVfs["game_scene/bomb/bomb_exploding.png"].readBitmap()){
+        val explodingView = image(resourcesVfs["graphics/game_scene/bomb/bomb_exploding.png"].readBitmap()){
             anchor(.5, .5)
             smoothing = false
         }
+        visible = false
     }
 
     fun explode() {

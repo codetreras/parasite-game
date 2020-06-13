@@ -5,6 +5,7 @@ import com.soywiz.klock.seconds
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
 import com.soywiz.korge.view.*
+import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.readBitmap
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korma.interpolation.Easing
@@ -20,6 +21,12 @@ class Player: Container() {
         DYING
     }
 
+    var isTeleportActive: Boolean = true
+        set(value) {
+            field = value
+            tint = if (value) Colors.WHITE else Colors.DARKRED
+            println(value)
+        }
     private lateinit var idleView: Image
     private lateinit var appearingView: Sprite
 
@@ -29,7 +36,7 @@ class Player: Container() {
 
     suspend fun loadPlayer() {
         state = State.READY
-        val appearingViewMap = resourcesVfs["game_scene/player/player_appearing.png"].readBitmap()
+        val appearingViewMap = resourcesVfs["graphics/game_scene/player/player_appearing.png"].readBitmap()
         appearingView = Sprite(initialAnimation = SpriteAnimation(
                 spriteMap = appearingViewMap,
                 spriteWidth = 15,
@@ -39,10 +46,10 @@ class Player: Container() {
         ), smoothing = false, anchorX = .5)
         appearingView.spriteDisplayTime = 40.milliseconds
 
-
-        idleView = Image(resourcesVfs["game_scene/player/player_idle.png"].readBitmap(),
+        idleView = Image(resourcesVfs["graphics/game_scene/player/player_idle.png"].readBitmap(),
                 smoothing = false, anchorX = .5)
         bomb.loadBomb()
+
         addChild(appearingView)
     }
 
