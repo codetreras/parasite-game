@@ -2,6 +2,8 @@ package views
 
 import com.soywiz.klock.TimeSpan
 import com.soywiz.klock.seconds
+import com.soywiz.korau.sound.NativeSound
+import com.soywiz.korau.sound.readSound
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
 import com.soywiz.korge.view.*

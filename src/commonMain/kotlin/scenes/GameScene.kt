@@ -25,6 +25,7 @@ import views.Bomb
 import views.Enemy
 import views.Player
 import views.Score
+import kotlin.math.ln
 import kotlin.math.min
 import kotlin.random.Random
 
@@ -39,29 +40,23 @@ class GameScene: Scene() {
     private lateinit var bg: Image
     private lateinit var gameOverPanel: GameOverView
 
-    private lateinit var pointSound: NativeSound
     private lateinit var bgMusic: NativeSoundChannel
 
     private var teleportPeriod = 8.seconds
     private var teleportTimer = 0.seconds
 
-    private var dificultTimer = 0.seconds
-    private var increaseDificultPeriod = 20.seconds
-
-    private var newHordRestPeriod = 4.seconds
+    private var newHordRestPeriod = 3.seconds
     private var newHordTimer = 0.seconds
-    private val numberOfEnemies:Int = 30
-    private var hordNumberEnemies:Int = 3
-    private var enemiesIndex:Int = 0
+    private var enemiesPerHord:Int = 1
+    private var numberOfHords:Int = 0
+    private val enemiesPoolSize:Int = 30
+    private var enemiesZIndex:Int = 0
 
     private lateinit var enemies: Pool<Enemy>
     private val activeEnemies: MutableList<Enemy> = mutableListOf()
 
     override suspend fun Container.sceneInit() {
-        bgMusic = resourcesVfs["sounds/ingame_music_1.mp3"].readMusic().playForever()
-        bgMusic.volume = 0.0
-        pointSound = resourcesVfs["sounds/fx/point.mp3"].readSound()
-        pointSound.volume -= 1
+
         bg = image(resourcesVfs["graphics/game_scene/bg.png"].readBitmap()){
             smoothing = false
             tint = Colors.DARKGRAY
@@ -77,7 +72,7 @@ class GameScene: Scene() {
         addChild(player.bomb)
         addChild(player)
 
-        enemies = Pool( { it.resetEnemy() }, numberOfEnemies, fun(it: Int) : Enemy{
+        enemies = Pool( { it.resetEnemy() }, enemiesPoolSize, fun(it: Int) : Enemy{
             var enemy = Enemy(Point(Random.nextInt(views.virtualWidth), Random.nextInt(views.virtualHeight)).normalized)
             CoroutineScope(coroutineContext).launch {
                 enemy.loadEnemy()
@@ -90,7 +85,7 @@ class GameScene: Scene() {
             alpha = 0.5
             blendMode = BlendMode.HARDLIGHT
         }
-        enemiesIndex = sceneView.numChildren
+        enemiesZIndex = sceneView.numChildren
 
         gameOverPanel = GameOverView(sceneContainer)
         gameOverPanel.position(views.virtualWidth, 0.0)
@@ -102,12 +97,10 @@ class GameScene: Scene() {
 
     override suspend fun sceneAfterInit() {
         super.sceneAfterInit()
-        sceneContainer.tween(bgMusic::volume[0.8], time = 2.seconds)
+        bgMusic = resourcesVfs["sounds/ingame_music_1.mp3"].readMusic().playForever()
+        bgMusic.volume = 0.0
+        sceneContainer.tween(bgMusic::volume[0.8], time = 1.5.seconds)
         player.live()
-        repeat(hordNumberEnemies){
-            delay(.5.seconds)
-            createEnemy()
-        }
     }
 
     private fun update(dt: TimeSpan): Unit{
@@ -121,26 +114,21 @@ class GameScene: Scene() {
         }
 
         if( newHordTimer.seconds >= newHordRestPeriod.seconds) {
+            numberOfHords++
             CoroutineScope(coroutineContext).launch {
-                repeat(hordNumberEnemies){
+                repeat(enemiesPerHord){
                     delay(.5.seconds)
                     createEnemy()
                 }
             }
             newHordTimer = 0.seconds
+            enemiesPerHord += 1
         }
 
         teleportTimer += dt
         if( teleportTimer.seconds >= teleportPeriod.seconds) {
             player.isTeleportActive = true
             teleportTimer = 0.seconds
-        }
-
-        dificultTimer += dt
-        if( dificultTimer.seconds >= increaseDificultPeriod.seconds) {
-            hordNumberEnemies += 1
-            dificultTimer = 0.seconds
-            increaseDificultPeriod -= 1.seconds
         }
 
         checkActiveEnemies(dt)
@@ -172,9 +160,7 @@ class GameScene: Scene() {
 
             if (views.input.keys[Key.SPACE] && player.bomb.state == Bomb.State.READY) player.dropBomb(player.x, player.y)
 
-            if (views.input.keys[Key.X] && player.isTeleportActive) teleportPlayer()
-
-
+            if (views.input.keys[Key.E] && player.isTeleportActive) teleportPlayer()
         }
 
     }
@@ -189,6 +175,24 @@ class GameScene: Scene() {
         }
     }
 
+    private fun createEnemy() {
+        val newEnemy = enemies.alloc()
+        newEnemy.position(
+                Random.nextInt(fieldMargin, views.virtualWidth - fieldMargin),
+                Random.nextInt(fieldMargin, views.virtualHeight- fieldMargin))
+
+        val x = Random.nextDouble(.0, 1.0)
+
+        if( x <= .3){
+            newEnemy.type = Enemy.EnemyType.CHASER
+        }else{
+            newEnemy.type = Enemy.EnemyType.STANDARD
+        }
+        sceneView.addChildAt(newEnemy, enemiesZIndex-1)
+        activeEnemies.add(newEnemy)
+        newEnemy.live()
+    }
+
     private fun infectEnemy(enemy: Enemy) {
         enemy.infect(){
             activeEnemies.remove(enemy)
@@ -199,23 +203,12 @@ class GameScene: Scene() {
     }
 
     private fun killEnemy(enemy: Enemy) {
-        pointSound.play()
         enemy.die(){
             activeEnemies.remove(enemy)
             sceneView.removeChild(enemy)
             enemies.free(enemy)
             score.addAditionalPoints(2)
         }
-    }
-
-    private fun createEnemy() {
-        val newEnemy = enemies.alloc()
-        newEnemy.position(
-                Random.nextInt(fieldMargin, views.virtualWidth - fieldMargin),
-                Random.nextInt(fieldMargin, views.virtualHeight- fieldMargin))
-        sceneView.addChildAt(newEnemy, enemiesIndex-1)
-        activeEnemies.add(newEnemy)
-        newEnemy.live()
     }
 
     private fun checkActiveEnemies(dt: TimeSpan){

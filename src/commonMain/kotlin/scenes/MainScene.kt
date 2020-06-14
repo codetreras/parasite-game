@@ -1,10 +1,7 @@
 package scenes
 
 import com.soywiz.klock.seconds
-import com.soywiz.korau.sound.NativeSound
-import com.soywiz.korau.sound.NativeSoundChannel
-import com.soywiz.korau.sound.readMusic
-import com.soywiz.korau.sound.readSound
+import com.soywiz.korau.sound.*
 import com.soywiz.korge.input.mouse
 import com.soywiz.korge.scene.Scene
 import com.soywiz.korge.tween.get
@@ -23,11 +20,18 @@ class MainScene: Scene() {
     private lateinit var startButton:Image
     private lateinit var title:Image
     private lateinit var bg:Image
+    private lateinit var instructions:Image
 
     private lateinit var bgMusic: NativeSoundChannel
 
     override suspend fun Container.sceneInit() {
-        bgMusic = resourcesVfs["sounds/menu_music.mp3"].readMusic().play()
+        bgMusic = resourcesVfs["sounds/menu_music.mp3"].readMusic().playForever()
+
+        instructions = Image(resourcesVfs["graphics/main_scene/instructions.png"].readBitmap()).apply {
+            smoothing = false
+            scale = .8
+        }
+
         bg = image(resourcesVfs["graphics/main_scene/title_bg.png"].readBitmap()){
             smoothing = false
             tint = Colors.DARKMAGENTA
@@ -56,6 +60,7 @@ class MainScene: Scene() {
                     scale -= 0.05
                     sceneContainer.changeTo<LoadingProxyScene>(
                             LoadingProxyScene.NextScreen(GameScene::class),
+                            instructions,
                             time = .5.seconds
                     )
                 }

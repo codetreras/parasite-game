@@ -31,6 +31,6 @@ object MainModule: Module(){
 		mapPrototype { MainScene() }
 		mapPrototype { GameScene() }
 		mapPrototype { SplashScreen() }
-		mapPrototype { LoadingProxyScene(get()) }
+		mapPrototype { LoadingProxyScene(get(), getOrNull()) }
 	}
 }

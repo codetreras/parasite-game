@@ -3,7 +3,7 @@ package views
 import com.soywiz.klock.milliseconds
 import com.soywiz.klock.seconds
 import com.soywiz.korau.sound.NativeSound
-import com.soywiz.korau.sound.NativeSoundChannel
+import com.soywiz.korau.sound.readMusic
 import com.soywiz.korau.sound.readSound
 import com.soywiz.korge.time.delay
 import com.soywiz.korge.tween.get
@@ -16,7 +16,6 @@ import com.soywiz.korma.geom.Point
 import com.soywiz.korma.interpolation.Easing
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlin.contracts.ConditionalEffect
 
 class Enemy(val direction: Point): Container() {
 
@@ -27,19 +26,38 @@ class Enemy(val direction: Point): Container() {
         DYING
     }
 
+    enum class EnemyType{
+        STANDARD,
+        CHASER
+    }
+
+    private lateinit var dieSound: NativeSound
     private lateinit var portalSound: NativeSound
 
     private lateinit var movingView: Image
     private lateinit var appearingView: Sprite
 
     var moveSpeed: Double = 50.0
-    var radius: Float = 50f
+    var radius: Float = 0f
+
     lateinit var state: State
+    var type: EnemyType = EnemyType.STANDARD
+        set(value) {
+            when(value){
+                EnemyType.STANDARD -> { radius = 50f; moveSpeed = 50.0; tint = Colors.WHITE }
+                EnemyType.CHASER -> { radius =  200f; moveSpeed = 40.0; tint = Colors.ORANGE }
+            }
+            field = value
+        }
 
     suspend fun loadEnemy(){
         state = Enemy.State.READY
-        portalSound = resourcesVfs["sounds/fx/portal.wav"].readSound()
-        portalSound.volume += .5
+        portalSound = resourcesVfs["sounds/fx/portal.wav"].readSound().apply {
+            volume += .5
+        }
+        dieSound = resourcesVfs["sounds/fx/point.mp3"].readSound().apply {
+            volume -= 1
+        }
         val appearingViewMap = resourcesVfs["graphics/game_scene/enemy/enemy_appearing.png"].readBitmap()
         appearingView = Sprite(initialAnimation = SpriteAnimation(
                 spriteMap = appearingViewMap,
@@ -71,23 +89,7 @@ class Enemy(val direction: Point): Container() {
         appearingView.onAnimationCompleted.once{
             removeChildren()
             addChild(movingView)
-        }
-    }
-
-    fun die(onDie: () -> Unit) {
-        state = State.DYING
-        removeChildren()
-        addChild(appearingView)
-        tint = Colors.DARKMAGENTA
-        GlobalScope.launch {
-            this@Enemy.tween(this@Enemy::scale[0.1], time = .5.seconds, easing = Easing.EASE_IN_OUT)
-        }
-        appearingView.playAnimation(reversed = true)
-        appearingView.onAnimationCompleted.once{
-            state = Enemy.State.READY
-            tint = Colors.WHITE
-            onDie()
-            removeChildren()
+            tint = tint
         }
     }
 
@@ -102,9 +104,26 @@ class Enemy(val direction: Point): Container() {
         }
     }
 
+    fun die(onDie: () -> Unit) {
+        state = State.DYING
+        removeChildren()
+        addChild(appearingView)
+        tint = Colors.DARKMAGENTA
+        GlobalScope.launch {
+            this@Enemy.tween(this@Enemy::scale[0.1], time = .5.seconds, easing = Easing.EASE_IN_OUT)
+        }
+        dieSound.play()
+        appearingView.playAnimation(reversed = true)
+        appearingView.onAnimationCompleted.once{
+            state = Enemy.State.READY
+            tint = Colors.WHITE
+            onDie()
+            removeChildren()
+        }
+    }
+
     fun resetEnemy(): Unit{
         state = State.READY
         scale = 1.0
-        tint = Colors.WHITE
     }
 }

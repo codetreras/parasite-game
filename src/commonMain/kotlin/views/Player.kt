@@ -3,6 +3,7 @@ package views
 import com.soywiz.klock.milliseconds
 import com.soywiz.klock.seconds
 import com.soywiz.korau.sound.NativeSound
+import com.soywiz.korau.sound.readMusic
 import com.soywiz.korau.sound.readSound
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
@@ -39,12 +40,15 @@ class Player: Container() {
     lateinit var state: Player.State
 
     suspend fun loadPlayer() {
+        portalSound = resourcesVfs["sounds/fx/portal.wav"].readSound().apply {
+            volume += .5
+        }
+        teleportSound = resourcesVfs["sounds/fx/teleport.wav"].readSound().apply{
+            volume += 1
+        }
+        dieSound = resourcesVfs["sounds/fx/point.mp3"].readSound()
+
         state = State.READY
-        portalSound = resourcesVfs["sounds/fx/portal.wav"].readSound()
-        teleportSound = resourcesVfs["sounds/fx/teleport.wav"].readSound()
-        dieSound = resourcesVfs["sounds/fx/die.wav"].readSound()
-        teleportSound.volume += 1
-        portalSound.volume += .5
         val appearingViewMap = resourcesVfs["graphics/game_scene/player/player_appearing.png"].readBitmap()
         appearingView = Sprite(initialAnimation = SpriteAnimation(
                 spriteMap = appearingViewMap,
