@@ -2,6 +2,9 @@ package views
 
 import com.soywiz.klock.milliseconds
 import com.soywiz.klock.seconds
+import com.soywiz.korau.sound.NativeSound
+import com.soywiz.korau.sound.NativeSoundChannel
+import com.soywiz.korau.sound.readSound
 import com.soywiz.korge.time.delay
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
@@ -13,6 +16,7 @@ import com.soywiz.korma.geom.Point
 import com.soywiz.korma.interpolation.Easing
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlin.contracts.ConditionalEffect
 
 class Enemy(val direction: Point): Container() {
 
@@ -23,6 +27,8 @@ class Enemy(val direction: Point): Container() {
         DYING
     }
 
+    private lateinit var portalSound: NativeSound
+
     private lateinit var movingView: Image
     private lateinit var appearingView: Sprite
 
@@ -32,6 +38,8 @@ class Enemy(val direction: Point): Container() {
 
     suspend fun loadEnemy(){
         state = Enemy.State.READY
+        portalSound = resourcesVfs["sounds/fx/portal.wav"].readSound()
+        portalSound.volume += .5
         val appearingViewMap = resourcesVfs["graphics/game_scene/enemy/enemy_appearing.png"].readBitmap()
         appearingView = Sprite(initialAnimation = SpriteAnimation(
                 spriteMap = appearingViewMap,
@@ -59,6 +67,7 @@ class Enemy(val direction: Point): Container() {
             state = Enemy.State.MOVING
         }
         appearingView.playAnimation()
+        portalSound.play()
         appearingView.onAnimationCompleted.once{
             removeChildren()
             addChild(movingView)

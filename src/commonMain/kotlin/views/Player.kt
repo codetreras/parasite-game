@@ -2,6 +2,8 @@ package views
 
 import com.soywiz.klock.milliseconds
 import com.soywiz.klock.seconds
+import com.soywiz.korau.sound.NativeSound
+import com.soywiz.korau.sound.readSound
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
 import com.soywiz.korge.view.*
@@ -21,11 +23,13 @@ class Player: Container() {
         DYING
     }
 
+    private lateinit var dieSound: NativeSound
+    private lateinit var teleportSound: NativeSound
+    private lateinit var portalSound: NativeSound
     var isTeleportActive: Boolean = true
         set(value) {
             field = value
             tint = if (value) Colors.WHITE else Colors.DARKRED
-            println(value)
         }
     private lateinit var idleView: Image
     private lateinit var appearingView: Sprite
@@ -36,6 +40,11 @@ class Player: Container() {
 
     suspend fun loadPlayer() {
         state = State.READY
+        portalSound = resourcesVfs["sounds/fx/portal.wav"].readSound()
+        teleportSound = resourcesVfs["sounds/fx/teleport.wav"].readSound()
+        dieSound = resourcesVfs["sounds/fx/die.wav"].readSound()
+        teleportSound.volume += 1
+        portalSound.volume += .5
         val appearingViewMap = resourcesVfs["graphics/game_scene/player/player_appearing.png"].readBitmap()
         appearingView = Sprite(initialAnimation = SpriteAnimation(
                 spriteMap = appearingViewMap,
@@ -62,6 +71,7 @@ class Player: Container() {
             this@Player.tween(this@Player::scale[1.0], time = .4.seconds, easing = Easing.EASE_IN_OUT)
         }
         appearingView.playAnimation()
+        portalSound.play()
         appearingView.onAnimationCompleted.once{
             state = State.MOVING
             removeChildren()
@@ -72,6 +82,7 @@ class Player: Container() {
     fun teleport(x: Double, y: Double, onTeleport: () -> Unit) {
         state = State.APPEARING
         blendMode = BlendMode.SCREEN
+        teleportSound.play()
         GlobalScope.launch {
             this@Player.tween(this@Player::x[x], this@Player::y[y], time = .2.seconds, easing = Easing.EASE_IN)
             onTeleport()
@@ -81,6 +92,25 @@ class Player: Container() {
             state = State.MOVING
             removeChildren()
             addChild(idleView)
+        }
+    }
+
+    fun die(onDie: () -> Unit) {
+        state = State.DYING
+        removeChildren()
+        addChild(appearingView)
+        tint = Colors.BLUE
+        GlobalScope.launch {
+            this@Player.tween(this@Player::scale[1.0], time = .2.seconds, easing = Easing.EASE_IN_OUT)
+            this@Player.tween(this@Player::scale[0.1], time = .4.seconds, easing = Easing.EASE_IN_OUT)
+        }
+        dieSound.play()
+        appearingView.playAnimation(reversed = true)
+        appearingView.onAnimationCompleted.once{
+            state = State.READY
+            tint = Colors.WHITE
+            onDie()
+            removeChildren()
         }
     }
 

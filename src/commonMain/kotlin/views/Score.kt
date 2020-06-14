@@ -16,7 +16,8 @@ import kotlin.math.round
 
 class Score: Container() {
 
-    private var counter = 0.0
+    var counter = 0.0
+        get() = field
     private lateinit var score: Text
     private lateinit var bg: Image
 
@@ -32,18 +33,13 @@ class Score: Container() {
         }
     }
 
-    fun addTime(dt: TimeSpan){
-        counter += dt.seconds
-        score.text = round(counter).toString()
-    }
-
     fun addAditionalPoints(points: Int){
         GlobalScope.launch {
             score.tint = Colors.MAGENTA
-            score.tween(score::scale[1.5], time = .1.seconds, easing = Easing.EASE_IN_OUT)
+            score.tween(score::scale[1.5], time = .2.seconds, easing = Easing.EASE_IN_OUT)
             counter += points
             score.text = round(counter).toString()
-            score.tween(score::scale[1.0], time = .05.seconds, easing = Easing.EASE_IN_OUT)
+            score.tween(score::scale[1.0], time = .2.seconds, easing = Easing.EASE_IN_OUT)
             score.tint = Colors.WHITE
         }
     }

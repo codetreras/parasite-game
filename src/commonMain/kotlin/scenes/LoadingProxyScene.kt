@@ -23,12 +23,12 @@ class LoadingProxyScene(nextScreen: LoadingProxyScene.NextScreen): Scene() {
     }
 
     override suspend fun Container.sceneMain() {
-        loadingText.tween(loadingText::x[views.virtualWidth / 2 - loadingText.width / 2].easeOutBounce(), time = 1.seconds)
+        loadingText.tween(loadingText::x[views.virtualWidth / 2 - loadingText.width / 2].easeOut(), time = 1.seconds)
         sceneContainer.changeToAsync(clazz = nextScreen as KClass<Scene>, time = .5.seconds)
     }
 
     override suspend fun sceneBeforeLeaving() {
-        loadingText.tween(loadingText::x[views.virtualWidth].easeInBounce(), time = .5.seconds)
+        loadingText.tween(loadingText::x[views.virtualWidth].easeIn(), time = .5.seconds)
     }
 
     data class NextScreen(val nextScreenClass: KClass<*>)
