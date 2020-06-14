@@ -9,11 +9,9 @@ import com.soywiz.korge.tween.tween
 import com.soywiz.korge.view.*
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.readBitmap
-import com.soywiz.korio.async.launchImmediately
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korma.interpolation.Easing
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import util.LoadingProxyScene
 
 class MainScene: Scene() {
 
@@ -56,13 +54,15 @@ class MainScene: Scene() {
                     tint = Colors.DARKMAGENTA
                 }
                 onClick {
-                    mouseEnabled = false
-                    scale -= 0.05
-                    sceneContainer.changeTo<LoadingProxyScene>(
-                            LoadingProxyScene.NextScreen(GameScene::class),
-                            instructions,
-                            time = .5.seconds
-                    )
+                    if(mouseEnabled) {
+                        mouseEnabled = false
+                        scale -= 0.05
+                        sceneContainer.changeTo<LoadingProxyScene>(
+                                LoadingProxyScene.NextScreen(GameScene::class),
+                                instructions,
+                                time = .5.seconds
+                        )
+                    }
                 }
             }
         }

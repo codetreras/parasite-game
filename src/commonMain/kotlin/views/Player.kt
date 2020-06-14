@@ -3,8 +3,8 @@ package views
 import com.soywiz.klock.milliseconds
 import com.soywiz.klock.seconds
 import com.soywiz.korau.sound.NativeSound
-import com.soywiz.korau.sound.readMusic
 import com.soywiz.korau.sound.readSound
+import com.soywiz.korge.time.delay
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
 import com.soywiz.korge.view.*
@@ -21,22 +21,25 @@ class Player: Container() {
         READY,
         APPEARING,
         MOVING,
-        DYING
+        DYING,
+        HURT
     }
 
+    private lateinit var hurtSound: NativeSound
     private lateinit var dieSound: NativeSound
     private lateinit var teleportSound: NativeSound
     private lateinit var portalSound: NativeSound
     var isTeleportActive: Boolean = true
         set(value) {
             field = value
-            tint = if (value) Colors.WHITE else Colors.DARKRED
+            tint = if (value) Colors.WHITE else Colors.DARKGRAY
         }
     private lateinit var idleView: Image
     private lateinit var appearingView: Sprite
 
     var moveSpeed = 100.0
     var bomb: Bomb = Bomb()
+    var lives: Int = 3
     lateinit var state: Player.State
 
     suspend fun loadPlayer() {
@@ -46,7 +49,7 @@ class Player: Container() {
         teleportSound = resourcesVfs["sounds/fx/teleport.wav"].readSound().apply{
             volume += 1
         }
-        dieSound = resourcesVfs["sounds/fx/point.mp3"].readSound()
+        hurtSound = resourcesVfs["sounds/fx/player_hurt.wav"].readSound()
 
         state = State.READY
         val appearingViewMap = resourcesVfs["graphics/game_scene/player/player_appearing.png"].readBitmap()
@@ -108,7 +111,7 @@ class Player: Container() {
             this@Player.tween(this@Player::scale[1.0], time = .2.seconds, easing = Easing.EASE_IN_OUT)
             this@Player.tween(this@Player::scale[0.1], time = .4.seconds, easing = Easing.EASE_IN_OUT)
         }
-        dieSound.play()
+        portalSound.play()
         appearingView.playAnimation(reversed = true)
         appearingView.onAnimationCompleted.once{
             state = State.READY
@@ -121,5 +124,17 @@ class Player: Container() {
     fun dropBomb(x: Double, y: Double) {
         bomb.position(x, y)
         bomb.explode()
+    }
+
+    fun hurt() {
+        state = State.HURT
+        lives--
+        hurtSound.play()
+        GlobalScope.launch {
+            tint = Colors.RED
+            delay(1.seconds)
+            state = State.MOVING
+            tint = Colors.WHITE
+        }
     }
 }

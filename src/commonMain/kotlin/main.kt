@@ -8,6 +8,7 @@ import com.soywiz.korinject.AsyncInjector
 import com.soywiz.korma.geom.ScaleMode
 import com.soywiz.korma.geom.SizeInt
 import scenes.*
+import util.LoadingProxyScene
 import kotlin.reflect.KClass
 
 suspend fun main() = Korge(Korge.Config(module = MainModule))
@@ -15,7 +16,7 @@ suspend fun main() = Korge(Korge.Config(module = MainModule))
 object MainModule: Module(){
 
 	override val mainScene: KClass<out Scene>
-		get() = SplashScreen::class
+		get() = GameScene::class
 	override val title: String
 		get() = "Parasite"
 	override val windowSize: SizeInt

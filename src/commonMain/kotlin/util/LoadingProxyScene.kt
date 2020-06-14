@@ -1,4 +1,4 @@
-package scenes
+package util
 
 import com.soywiz.klock.seconds
 import com.soywiz.korge.scene.Scene
@@ -7,7 +7,7 @@ import com.soywiz.korge.tween.*
 import com.soywiz.korge.view.*
 import kotlin.reflect.KClass
 
-class LoadingProxyScene(nextScreen: LoadingProxyScene.NextScreen, private val info: Image?): Scene() {
+class LoadingProxyScene(nextScreen: NextScreen, private val info: Image?): Scene() {
 
     private lateinit var loadingText: Text
     private val text: String = "Loading..."

@@ -6,13 +6,13 @@ import com.soywiz.korau.sound.readMusic
 import com.soywiz.korge.scene.Scene
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
-import com.soywiz.korge.tween.tweenAsync
 import com.soywiz.korge.view.Container
 import com.soywiz.korge.view.Image
 import com.soywiz.korge.view.image
 import com.soywiz.korim.format.readBitmap
 import com.soywiz.korio.async.delay
 import com.soywiz.korio.file.std.resourcesVfs
+import util.LoadingProxyScene
 
 class SplashScreen: Scene() {
 

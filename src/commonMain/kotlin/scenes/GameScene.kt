@@ -3,10 +3,8 @@ package scenes
 import com.soywiz.kds.Pool
 import com.soywiz.klock.TimeSpan
 import com.soywiz.klock.seconds
-import com.soywiz.korau.sound.NativeSound
 import com.soywiz.korau.sound.NativeSoundChannel
 import com.soywiz.korau.sound.readMusic
-import com.soywiz.korau.sound.readSound
 import com.soywiz.korev.Key
 import com.soywiz.korge.scene.Scene
 import com.soywiz.korge.tween.get
@@ -21,15 +19,14 @@ import com.soywiz.korma.geom.Point
 import com.soywiz.korma.interpolation.Easing
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import views.Bomb
-import views.Enemy
-import views.Player
-import views.Score
-import kotlin.math.ln
-import kotlin.math.min
+import views.*
 import kotlin.random.Random
 
 class GameScene: Scene() {
+
+    private var shakeScreen: Boolean = false
+    private var shakeScreenTimer = 0.seconds
+    private var shakeScreenDuration = .6.seconds
 
     private val fieldMargin = 15
     private var paused = false
@@ -38,7 +35,7 @@ class GameScene: Scene() {
     private lateinit var lights: Image
     private lateinit var score: Score
     private lateinit var bg: Image
-    private lateinit var gameOverPanel: GameOverView
+    private lateinit var gameOverPanel: GameOverPanel
 
     private lateinit var bgMusic: NativeSoundChannel
 
@@ -87,7 +84,7 @@ class GameScene: Scene() {
         }
         enemiesZIndex = sceneView.numChildren
 
-        gameOverPanel = GameOverView(sceneContainer)
+        gameOverPanel = GameOverPanel(sceneContainer)
         gameOverPanel.position(views.virtualWidth, 0.0)
         gameOverPanel.loadPanel()
         addChild(gameOverPanel)
@@ -106,24 +103,12 @@ class GameScene: Scene() {
     private fun update(dt: TimeSpan): Unit{
 
         checkInput(dt)
+        checkShakeScreen(dt)
 
         if(paused) return
 
-        if(activeEnemies.isEmpty()){
-            newHordTimer += dt
-        }
+        createHord(dt)
 
-        if( newHordTimer.seconds >= newHordRestPeriod.seconds) {
-            numberOfHords++
-            CoroutineScope(coroutineContext).launch {
-                repeat(enemiesPerHord){
-                    delay(.5.seconds)
-                    createEnemy()
-                }
-            }
-            newHordTimer = 0.seconds
-            enemiesPerHord += 1
-        }
 
         teleportTimer += dt
         if( teleportTimer.seconds >= teleportPeriod.seconds) {
@@ -134,13 +119,25 @@ class GameScene: Scene() {
         checkActiveEnemies(dt)
     }
 
+    private fun checkShakeScreen(dt: TimeSpan) {
+        if (shakeScreen) {
+            if (shakeScreenTimer <= shakeScreenDuration) {
+                sceneView.position(Random.nextDouble(-3.0, 3.0), Random.nextDouble(-3.0, 3.0))
+                shakeScreenTimer += dt
+            } else {
+                shakeScreen = false
+                shakeScreenTimer = 0.seconds
+            }
+        }
+    }
+
     private fun checkInput(dt: TimeSpan) {
 
         if (views.input.keys.justReleased(Key.P)) paused = !paused
 
         if (paused) return
 
-        if (player.state == Player.State.MOVING) {
+        if (player.state == Player.State.MOVING || player.state == Player.State.HURT) {
 
             if (views.input.keys[Key.LEFT]) {
                 if (player.x > fieldMargin) player.x -= player.moveSpeed * dt.seconds
@@ -175,6 +172,24 @@ class GameScene: Scene() {
         }
     }
 
+    private fun createHord(dt: TimeSpan) {
+        if (activeEnemies.isEmpty()) {
+            newHordTimer += dt
+        }
+
+        if (newHordTimer.seconds >= newHordRestPeriod.seconds) {
+            numberOfHords++
+            CoroutineScope(coroutineContext).launch {
+                repeat(enemiesPerHord) {
+                    delay(.5.seconds)
+                    createEnemy()
+                }
+            }
+            newHordTimer = 0.seconds
+            enemiesPerHord += 1
+        }
+    }
+
     private fun createEnemy() {
         val newEnemy = enemies.alloc()
         newEnemy.position(
@@ -203,11 +218,11 @@ class GameScene: Scene() {
     }
 
     private fun killEnemy(enemy: Enemy) {
+        score.addAditionalPoints(2)
         enemy.die(){
             activeEnemies.remove(enemy)
             sceneView.removeChild(enemy)
             enemies.free(enemy)
-            score.addAditionalPoints(2)
         }
     }
 
@@ -219,13 +234,19 @@ class GameScene: Scene() {
                 val enemy = iterator.next()
 
                 if(enemy.state == Enemy.State.MOVING && player.state == Player.State.MOVING){
-                    if(enemy.collidesWith(player, CollisionKind.GLOBAL_RECT)){
-                        paused = true
-                        player.die {
-                            CoroutineScope(coroutineContext).launchImmediately {
-                                sceneView.tween(bgMusic::volume[0.0], time = .5.seconds)
-                                bgMusic.stop()
-                                gameOverPanel.tween(gameOverPanel::x[gameOverPanel.x-gameOverPanel.width], time = .3.seconds, easing = Easing.EASE_OUT)
+
+                    if(enemy.collidesWith(player, CollisionKind.GLOBAL_RECT) && player.state == Player.State.MOVING){
+                        shakeScreen = true
+                        player.hurt()
+                        score.updateColor(player.lives)
+                        if (player.lives == 0){
+                            paused = true
+                            player.die {
+                                CoroutineScope(coroutineContext).launchImmediately {
+                                    sceneView.tween(bgMusic::volume[0.0], time = .5.seconds)
+                                    bgMusic.stop()
+                                    gameOverPanel.tween(gameOverPanel::x[gameOverPanel.x-gameOverPanel.width], time = .3.seconds, easing = Easing.EASE_OUT)
+                                }
                             }
                         }
                     }else if(enemy.collidesWith(player.bomb, CollisionKind.GLOBAL_RECT) && player.bomb.state == Bomb.State.EXPLOTING){
