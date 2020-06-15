@@ -1,8 +1,6 @@
 package views
 
 import com.soywiz.klock.seconds
-import com.soywiz.korau.sound.NativeSound
-import com.soywiz.korau.sound.readSound
 import com.soywiz.korge.time.delay
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
@@ -45,11 +43,11 @@ class Score: Container() {
 
     fun addAditionalPoints(points: Int){
         GlobalScope.launch {
-            score.tween(score::scale[2.5], time = .2.seconds, easing = Easing.EASE_IN_OUT)
+            score.tween(score::scale[1.1], time = .1.seconds, easing = Easing.EASE_IN_OUT)
             counter += points
             score.text = round(counter).toInt().toString()
             delay(.1.seconds)
-            score.tween(score::scale[1.0], time = .2.seconds, easing = Easing.EASE_IN_OUT)
+            score.tween(score::scale[1.0], time = .1.seconds, easing = Easing.EASE_IN_OUT)
         }
     }
 

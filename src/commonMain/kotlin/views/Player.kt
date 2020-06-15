@@ -30,10 +30,7 @@ class Player: Container() {
     private lateinit var teleportSound: NativeSound
     private lateinit var portalSound: NativeSound
     var isTeleportActive: Boolean = true
-        set(value) {
-            field = value
-            tint = if (value) Colors.WHITE else Colors.DARKGRAY
-        }
+
     private lateinit var idleView: Image
     private lateinit var appearingView: Sprite
 

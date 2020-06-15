@@ -36,10 +36,11 @@ class GameScene: Scene() {
     private lateinit var score: Score
     private lateinit var bg: Image
     private lateinit var gameOverPanel: GameOverPanel
+    private lateinit var teleportSymbol: Image
 
     private lateinit var bgMusic: NativeSoundChannel
 
-    private var teleportPeriod = 8.seconds
+    private var teleportPeriod = 5.seconds
     private var teleportTimer = 0.seconds
 
     private var newHordRestPeriod = 3.seconds
@@ -59,6 +60,14 @@ class GameScene: Scene() {
             tint = Colors.DARKGRAY
         }
 
+        teleportSymbol = image(resourcesVfs["graphics/game_scene/teleport_symbol.png"].readBitmap()){
+            smoothing = false
+            anchor(.5, .5)
+            scale = .8
+            position(views.virtualWidth / 2, 146)
+            tint = Colors.DARKMAGENTA
+        }
+
         score = Score()
         score.loadScore()
         addChild(score)
@@ -71,7 +80,7 @@ class GameScene: Scene() {
 
         enemies = Pool( { it.resetEnemy() }, enemiesPoolSize, fun(it: Int) : Enemy{
             var enemy = Enemy(Point(Random.nextInt(views.virtualWidth), Random.nextInt(views.virtualHeight)).normalized)
-            CoroutineScope(coroutineContext).launch {
+            CoroutineScope(coroutineContext).launchImmediately {
                 enemy.loadEnemy()
             }
             return enemy
@@ -107,15 +116,8 @@ class GameScene: Scene() {
 
         if(paused) return
 
+        checkTeleport(dt)
         createHord(dt)
-
-
-        teleportTimer += dt
-        if( teleportTimer.seconds >= teleportPeriod.seconds) {
-            player.isTeleportActive = true
-            teleportTimer = 0.seconds
-        }
-
         checkActiveEnemies(dt)
     }
 
@@ -162,8 +164,22 @@ class GameScene: Scene() {
 
     }
 
+    private fun checkTeleport(dt: TimeSpan) {
+        teleportTimer += dt
+        if (teleportTimer.seconds >= teleportPeriod.seconds) {
+            teleportSymbol.tint = Colors.DARKMAGENTA
+            player.isTeleportActive = true
+        }
+    }
+
     private fun teleportPlayer() {
         if (activeEnemies.isNotEmpty()){
+            teleportTimer = 0.seconds
+            CoroutineScope(coroutineContext).launchImmediately {
+                teleportSymbol.tween(teleportSymbol::scale[3], time = 0.2.seconds)
+                teleportSymbol.tween(teleportSymbol::scale[.8], time = 0.2.seconds)
+            }
+            teleportSymbol.tint = Colors.DARKGRAY
             val enemy = activeEnemies.first()
             player.teleport(enemy.x, enemy.y){
                 infectEnemy(enemy)

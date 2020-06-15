@@ -31,7 +31,7 @@ class LoadingProxyScene(nextScreen: NextScreen, private val info: Image?): Scene
     override suspend fun Container.sceneMain() {
         loadingText.tween(loadingText::x[views.virtualWidth - loadingText.width - 20].easeOut(), time = 1.seconds)
         info?.let { delay(3.seconds) }
-        sceneContainer.changeToAsync(clazz = nextScreen as KClass<Scene>, time = .5.seconds)
+        sceneContainer.changeTo(clazz = nextScreen as KClass<Scene>, time = .5.seconds)
     }
 
     override suspend fun sceneBeforeLeaving() {

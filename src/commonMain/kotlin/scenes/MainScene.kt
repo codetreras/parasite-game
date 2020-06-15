@@ -23,7 +23,6 @@ class MainScene: Scene() {
     private lateinit var bgMusic: NativeSoundChannel
 
     override suspend fun Container.sceneInit() {
-        bgMusic = resourcesVfs["sounds/menu_music.mp3"].readMusic().playForever()
 
         instructions = Image(resourcesVfs["graphics/main_scene/instructions.png"].readBitmap()).apply {
             smoothing = false
@@ -69,6 +68,7 @@ class MainScene: Scene() {
     }
 
     override suspend fun Container.sceneMain() {
+        bgMusic = resourcesVfs["sounds/menu_music.mp3"].readMusic().play()
         while (true){
             title.tween(title::y[bg.height / 2 - 5], time = 2.seconds, easing = Easing.EASE_IN_OUT)
             title.tween(title::y[bg.height / 2 + 5], time = 2.seconds, easing = Easing.EASE_IN_OUT)
