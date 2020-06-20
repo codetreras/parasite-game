@@ -24,32 +24,33 @@ import kotlin.random.Random
 
 class GameScene: Scene() {
 
+    private var paused = false
+    private val fieldMargin = 15
+
     private var shakeScreen: Boolean = false
     private var shakeScreenTimer = 0.seconds
     private var shakeScreenDuration = .6.seconds
 
-    private val fieldMargin = 15
-    private var paused = false
-    private lateinit var player: Player
-
-    private lateinit var lights: Image
-    private lateinit var score: Score
     private lateinit var bg: Image
-    private lateinit var gameOverPanel: GameOverPanel
+    private lateinit var lights: Image
     private lateinit var teleportSymbol: Image
+    
+    private lateinit var scorePanel: Score
+    private lateinit var player: Player
+    private lateinit var gameOverPanel: GameOverPanel
 
     private lateinit var bgMusic: NativeSoundChannel
 
-    private var teleportPeriod = 5.seconds
+    private var teleportActivationPeriod = 5.seconds
     private var teleportTimer = 0.seconds
 
-    private var newHordRestPeriod = 3.seconds
-    private var newHordTimer = 0.seconds
-    private var enemiesPerHord:Int = 1
-    private var numberOfHords:Int = 0
+    private var newHordeTimer = 0.seconds
+    private var numberOfHordes:Int = 0
     private val enemiesPoolSize:Int = 30
-    private var enemiesZIndex:Int = 0
+    private val restPeriodBetweenHordes = 3.seconds
+    private var enemiesPerHorde:Int = 1
 
+    private var enemiesZIndex:Int = 0
     private lateinit var enemies: Pool<Enemy>
     private val activeEnemies: MutableList<Enemy> = mutableListOf()
 
@@ -68,18 +69,18 @@ class GameScene: Scene() {
             tint = Colors.DARKMAGENTA
         }
 
-        score = Score()
-        score.loadScore()
-        addChild(score)
+        scorePanel = Score()
+        scorePanel.loadScore()
+        addChild(scorePanel)
 
         player = Player()
         player.loadPlayer()
         player.position(1 + views.virtualWidth / 2, 146)
-        addChild(player.bomb)
         addChild(player)
+        addChild(player.bomb)
 
-        enemies = Pool( { it.resetEnemy() }, enemiesPoolSize, fun(it: Int) : Enemy{
-            var enemy = Enemy(Point(Random.nextInt(views.virtualWidth), Random.nextInt(views.virtualHeight)).normalized)
+        enemies = Pool( { it.resetEnemy() }, enemiesPoolSize, fun(_: Int) : Enemy{
+            val enemy = Enemy(Point(Random.nextInt(views.virtualWidth), Random.nextInt(views.virtualHeight)).normalized)
             CoroutineScope(coroutineContext).launchImmediately {
                 enemy.loadEnemy()
             }
@@ -91,6 +92,7 @@ class GameScene: Scene() {
             alpha = 0.5
             blendMode = BlendMode.HARDLIGHT
         }
+
         enemiesZIndex = sceneView.numChildren
 
         gameOverPanel = GameOverPanel(sceneContainer)
@@ -109,28 +111,16 @@ class GameScene: Scene() {
         player.live()
     }
 
-    private fun update(dt: TimeSpan): Unit{
+    private fun update(dt: TimeSpan){
 
         checkInput(dt)
         checkShakeScreen(dt)
 
         if(paused) return
 
-        checkTeleport(dt)
-        createHord(dt)
+        checkTeleportAvailability(dt)
+        checkHordeCreation(dt)
         checkActiveEnemies(dt)
-    }
-
-    private fun checkShakeScreen(dt: TimeSpan) {
-        if (shakeScreen) {
-            if (shakeScreenTimer <= shakeScreenDuration) {
-                sceneView.position(Random.nextDouble(-3.0, 3.0), Random.nextDouble(-3.0, 3.0))
-                shakeScreenTimer += dt
-            } else {
-                shakeScreen = false
-                shakeScreenTimer = 0.seconds
-            }
-        }
     }
 
     private fun checkInput(dt: TimeSpan) {
@@ -164,9 +154,21 @@ class GameScene: Scene() {
 
     }
 
-    private fun checkTeleport(dt: TimeSpan) {
+    private fun checkShakeScreen(dt: TimeSpan) {
+        if (shakeScreen) {
+            if (shakeScreenTimer <= shakeScreenDuration) {
+                sceneView.position(Random.nextDouble(-3.0, 3.0), Random.nextDouble(-3.0, 3.0))
+                shakeScreenTimer += dt
+            } else {
+                shakeScreen = false
+                shakeScreenTimer = 0.seconds
+            }
+        }
+    }
+
+    private fun checkTeleportAvailability(dt: TimeSpan) {
         teleportTimer += dt
-        if (teleportTimer.seconds >= teleportPeriod.seconds) {
+        if (teleportTimer.seconds >= teleportActivationPeriod.seconds) {
             teleportSymbol.tint = Colors.DARKMAGENTA
             player.isTeleportActive = true
         }
@@ -188,33 +190,31 @@ class GameScene: Scene() {
         }
     }
 
-    private fun createHord(dt: TimeSpan) {
+    private fun checkHordeCreation(dt: TimeSpan) {
         if (activeEnemies.isEmpty()) {
-            newHordTimer += dt
+            newHordeTimer += dt
         }
 
-        if (newHordTimer.seconds >= newHordRestPeriod.seconds) {
-            numberOfHords++
+        if (newHordeTimer.seconds >= restPeriodBetweenHordes.seconds) {
+            numberOfHordes++
             CoroutineScope(coroutineContext).launch {
-                repeat(enemiesPerHord) {
+                repeat(enemiesPerHorde) {
                     delay(.5.seconds)
                     createEnemy()
                 }
             }
-            newHordTimer = 0.seconds
-            enemiesPerHord += 1
+            newHordeTimer = 0.seconds
+            enemiesPerHorde += 1
         }
     }
 
     private fun createEnemy() {
-        val newEnemy = enemies.alloc()
-        newEnemy.position(
-                Random.nextInt(fieldMargin, views.virtualWidth - fieldMargin),
-                Random.nextInt(fieldMargin, views.virtualHeight- fieldMargin))
+        val newEnemy = enemies.alloc().apply {
+            position(Random.nextInt(fieldMargin, views.virtualWidth - fieldMargin),
+                    Random.nextInt(fieldMargin, views.virtualHeight - fieldMargin))
+        }
 
-        val x = Random.nextDouble(.0, 1.0)
-
-        if( x <= .3){
+        if( Random.nextDouble(.0, 1.0) <= .3 ){
             newEnemy.type = Enemy.EnemyType.CHASER
         }else{
             newEnemy.type = Enemy.EnemyType.STANDARD
@@ -225,17 +225,17 @@ class GameScene: Scene() {
     }
 
     private fun infectEnemy(enemy: Enemy) {
-        enemy.infect(){
+        enemy.infect {
             activeEnemies.remove(enemy)
             sceneView.removeChild(enemy)
             enemies.free(enemy)
-            score.addAditionalPoints(3)
+            scorePanel.addAditionalPoints(3)
         }
     }
 
     private fun killEnemy(enemy: Enemy) {
-        score.addAditionalPoints(2)
-        enemy.die(){
+        scorePanel.addAditionalPoints(2)
+        enemy.die{
             activeEnemies.remove(enemy)
             sceneView.removeChild(enemy)
             enemies.free(enemy)
@@ -245,42 +245,45 @@ class GameScene: Scene() {
     private fun checkActiveEnemies(dt: TimeSpan){
         val iterator = activeEnemies.iterator()
         while(iterator.hasNext()){
-
             try {
-                val enemy = iterator.next()
+                val activeEnemy = iterator.next()
 
-                if(enemy.state == Enemy.State.MOVING && player.state == Player.State.MOVING){
+                if(activeEnemy.state == Enemy.State.MOVING && player.state == Player.State.MOVING){
 
-                    if(enemy.collidesWith(player, CollisionKind.GLOBAL_RECT) && player.state == Player.State.MOVING){
+                    if(activeEnemy.collidesWith(player, CollisionKind.GLOBAL_RECT)
+                            && player.state == Player.State.MOVING){
                         shakeScreen = true
                         player.hurt()
-                        score.updateColor(player.lives)
+                        scorePanel.updateLivesCounter(player.lives)
+
                         if (player.lives == 0){
                             paused = true
                             player.die {
                                 CoroutineScope(coroutineContext).launchImmediately {
                                     sceneView.tween(bgMusic::volume[0.0], time = .5.seconds)
                                     bgMusic.stop()
-                                    gameOverPanel.tween(gameOverPanel::x[gameOverPanel.x-gameOverPanel.width], time = .3.seconds, easing = Easing.EASE_OUT)
+                                    gameOverPanel.tween(gameOverPanel::x[gameOverPanel.x-gameOverPanel.width],
+                                            time = .3.seconds, easing = Easing.EASE_OUT)
                                 }
                             }
                         }
-                    }else if(enemy.collidesWith(player.bomb, CollisionKind.GLOBAL_RECT) && player.bomb.state == Bomb.State.EXPLOTING){
-                        killEnemy(enemy)
+                    }else if(activeEnemy.collidesWith(player.bomb, CollisionKind.GLOBAL_RECT)
+                            && player.bomb.state == Bomb.State.EXPLODING){
+                        killEnemy(activeEnemy)
                     }
 
-                    val vector = Point(player.x - enemy.x, player.y - enemy.y)
-                    if(player.state == Player.State.MOVING)
-                    if(vector.magnitude <= enemy.radius){
-                        enemy.x += vector.normalized.x * enemy.moveSpeed * dt.seconds
-                        enemy.y += vector.normalized.y * enemy.moveSpeed * dt.seconds
+                    val distanceEnemyPlayer = Point(player.x - activeEnemy.x, player.y - activeEnemy.y)
+
+                    if(distanceEnemyPlayer.magnitude <= activeEnemy.chaseRadius){
+                        activeEnemy.x += distanceEnemyPlayer.normalized.x * activeEnemy.moveSpeed * dt.seconds
+                        activeEnemy.y += distanceEnemyPlayer.normalized.y * activeEnemy.moveSpeed * dt.seconds
                     } else {
-                        enemy.x += enemy.direction.x * enemy.moveSpeed * dt.seconds
-                        enemy.y += enemy.direction.y * enemy.moveSpeed * dt.seconds
+                        activeEnemy.x += activeEnemy.direction.x * activeEnemy.moveSpeed * dt.seconds
+                        activeEnemy.y += activeEnemy.direction.y * activeEnemy.moveSpeed * dt.seconds
                     }
 
-                    if(enemy.x > views.virtualWidth - fieldMargin || enemy.x <= fieldMargin ) enemy.direction.x *= -1
-                    else if(enemy.y > views.virtualHeight - fieldMargin || enemy.y <= fieldMargin) enemy.direction.y *= -1
+                    if(activeEnemy.x > views.virtualWidth - fieldMargin || activeEnemy.x <= fieldMargin ) activeEnemy.direction.x *= -1
+                    else if(activeEnemy.y > views.virtualHeight - fieldMargin || activeEnemy.y <= fieldMargin) activeEnemy.direction.y *= -1
                 }
             }catch (e: ConcurrentModificationException) { break }
         }

@@ -15,19 +15,14 @@ import util.LoadingProxyScene
 
 class MainScene: Scene() {
 
+    private lateinit var instructions:Image
     private lateinit var startButton:Image
     private lateinit var title:Image
     private lateinit var bg:Image
-    private lateinit var instructions:Image
 
     private lateinit var bgMusic: NativeSoundChannel
 
     override suspend fun Container.sceneInit() {
-
-        instructions = Image(resourcesVfs["graphics/main_scene/instructions.png"].readBitmap()).apply {
-            smoothing = false
-            scale = .8
-        }
 
         bg = image(resourcesVfs["graphics/main_scene/title_bg.png"].readBitmap()){
             smoothing = false
@@ -64,6 +59,11 @@ class MainScene: Scene() {
                     }
                 }
             }
+        }
+
+        instructions = Image(resourcesVfs["graphics/main_scene/instructions.png"].readBitmap()).apply {
+            smoothing = false
+            scale = .8
         }
     }
 

@@ -37,14 +37,14 @@ class Enemy(val direction: Point): Container() {
     private lateinit var appearingView: Sprite
 
     var moveSpeed: Double = 50.0
-    var radius: Float = 0f
+    var chaseRadius: Float = 0f
 
     lateinit var state: State
     var type: EnemyType = EnemyType.STANDARD
         set(value) {
             when(value){
-                EnemyType.STANDARD -> { radius = 50f; moveSpeed = 50.0; tint = Colors.WHITE }
-                EnemyType.CHASER -> { radius =  200f; moveSpeed = 40.0; tint = Colors.ORANGE }
+                EnemyType.STANDARD -> { chaseRadius = 50f; moveSpeed = 50.0; tint = Colors.WHITE }
+                EnemyType.CHASER -> { chaseRadius =  200f; moveSpeed = 40.0; tint = Colors.ORANGE }
             }
             field = value
         }

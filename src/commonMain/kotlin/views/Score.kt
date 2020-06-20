@@ -17,7 +17,6 @@ import kotlin.math.round
 class Score: Container() {
 
     var counter = 0.0
-        get() = field
     private lateinit var score: Text
     private lateinit var lives: Text
     private lateinit var bg: Image
@@ -51,7 +50,7 @@ class Score: Container() {
         }
     }
 
-    fun updateColor(lives: Int) {
+    fun updateLivesCounter(lives: Int) {
         when(lives){
             2 -> { this.lives.color = Colors.YELLOW; this.lives.text = "xx" }
             1 -> { this.lives.color = Colors.RED; this.lives.text = "x" }

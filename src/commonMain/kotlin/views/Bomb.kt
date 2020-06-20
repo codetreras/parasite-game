@@ -2,38 +2,32 @@ package views
 
 import com.soywiz.klock.seconds
 import com.soywiz.korau.sound.NativeSound
-import com.soywiz.korau.sound.readMusic
 import com.soywiz.korau.sound.readSound
 import com.soywiz.korge.tween.get
 import com.soywiz.korge.tween.tween
 import com.soywiz.korge.view.*
 import com.soywiz.korim.format.readBitmap
-import com.soywiz.korio.async.delay
 import com.soywiz.korio.async.launch
-import com.soywiz.korio.async.runBlockingNoSuspensions
 import com.soywiz.korio.file.std.resourcesVfs
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
-import kotlin.coroutines.coroutineContext
 
 class Bomb: Container() {
+
     enum class State{
         READY,
-        EXPLOTING
+        EXPLODING
     }
 
     private lateinit var bombSound: NativeSound
-    private lateinit var explodingView: Image
-    var state: Bomb.State = Bomb.State.READY
-    private val rotationExploding = 300
+    var state: State = State.READY
 
     suspend fun loadBomb(){
-        state = Bomb.State.READY
+        state = State.READY
         bombSound = resourcesVfs["sounds/fx/bomb_fx.wav"].readSound().apply {
             volume -= .1
         }
 
-        val explodingView = image(resourcesVfs["graphics/game_scene/bomb/bomb_exploding.png"].readBitmap()){
+        image(resourcesVfs["graphics/game_scene/bomb/bomb_exploding.png"].readBitmap()){
             scale = .9
             anchor(.5, .5)
             smoothing = false
@@ -45,7 +39,7 @@ class Bomb: Container() {
 
     fun explode() {
         visible = true
-        state = State.EXPLOTING
+        state = State.EXPLODING
         GlobalScope.launch {
             bombSound.play()
             this.tween(this::scale[.8], this::rotationDegrees[800], time = 1.seconds)

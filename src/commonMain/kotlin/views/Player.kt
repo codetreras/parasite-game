@@ -25,21 +25,22 @@ class Player: Container() {
         HURT
     }
 
-    private lateinit var hurtSound: NativeSound
-    private lateinit var dieSound: NativeSound
-    private lateinit var teleportSound: NativeSound
-    private lateinit var portalSound: NativeSound
+    var lives: Int = 3
+    var moveSpeed = 100.0
+    lateinit var state: State
     var isTeleportActive: Boolean = true
 
+    private lateinit var hurtSound: NativeSound
+    private lateinit var teleportSound: NativeSound
+    private lateinit var portalSound: NativeSound
+
+    var bomb: Bomb = Bomb()
     private lateinit var idleView: Image
     private lateinit var appearingView: Sprite
 
-    var moveSpeed = 100.0
-    var bomb: Bomb = Bomb()
-    var lives: Int = 3
-    lateinit var state: Player.State
-
     suspend fun loadPlayer() {
+        state = State.READY
+
         portalSound = resourcesVfs["sounds/fx/portal.wav"].readSound().apply {
             volume += .5
         }
@@ -48,7 +49,6 @@ class Player: Container() {
         }
         hurtSound = resourcesVfs["sounds/fx/player_hurt.wav"].readSound()
 
-        state = State.READY
         val appearingViewMap = resourcesVfs["graphics/game_scene/player/player_appearing.png"].readBitmap()
         appearingView = Sprite(initialAnimation = SpriteAnimation(
                 spriteMap = appearingViewMap,
