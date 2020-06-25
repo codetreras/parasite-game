@@ -12,44 +12,49 @@ import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.readBitmap
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korma.geom.Point
+import com.soywiz.korma.geom.vector.circle
 import com.soywiz.korma.interpolation.Easing
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
-class Enemy(val direction: Point): Container() {
-
-    enum class State{
+class Enemy(val direction: Point) : Container() {
+    
+    enum class State {
         READY,
         APPEARING,
         MOVING,
         DYING
     }
-
-    enum class EnemyType{
+    
+    enum class EnemyType {
         STANDARD,
         CHASER
     }
-
+    
     private lateinit var dieSound: NativeSound
     private lateinit var portalSound: NativeSound
-
+    
     private lateinit var movingView: Image
     private lateinit var appearingView: Sprite
-
+    
     var moveSpeed: Double = 50.0
     var chaseRadius: Float = 0f
-
+    
     lateinit var state: State
     var type: EnemyType = EnemyType.STANDARD
         set(value) {
-            when(value){
-                EnemyType.STANDARD -> { chaseRadius = 50f; moveSpeed = 50.0; tint = Colors.WHITE }
-                EnemyType.CHASER -> { chaseRadius =  200f; moveSpeed = 40.0; tint = Colors.ORANGE }
+            when (value) {
+                EnemyType.STANDARD -> {
+                    chaseRadius = 50f; moveSpeed = 50.0; tint = Colors.WHITE
+                }
+                EnemyType.CHASER -> {
+                    chaseRadius = 200f; moveSpeed = 40.0; tint = Colors.ORANGE
+                }
             }
             field = value
         }
-
-    suspend fun loadEnemy(){
+    
+    suspend fun loadEnemy() {
         state = Enemy.State.READY
         portalSound = resourcesVfs["sounds/fx/portal.wav"].readSound().apply {
             volume += .5
@@ -66,14 +71,17 @@ class Enemy(val direction: Point): Container() {
                 rows = 1
         ), smoothing = false, anchorX = .5)
         appearingView.spriteDisplayTime = 40.milliseconds
-
-
+        
         movingView = Image(resourcesVfs["graphics/game_scene/enemy/enemy_idle.png"].readBitmap(),
                 smoothing = false, anchorX = .5)
-
+        
         addChild(appearingView)
+        
+        hitShape {
+            circle(width / 2, height / 2, width / 2)
+        }
     }
-
+    
     fun live() {
         state = Enemy.State.APPEARING
         removeChildren()
@@ -85,13 +93,13 @@ class Enemy(val direction: Point): Container() {
         }
         appearingView.playAnimation()
         portalSound.play()
-        appearingView.onAnimationCompleted.once{
+        appearingView.onAnimationCompleted.once {
             removeChildren()
             addChild(movingView)
             tint = tint
         }
     }
-
+    
     fun infect(onInfect: () -> Unit) {
         state = Enemy.State.READY
         tint = Colors.DARKMAGENTA
@@ -102,7 +110,7 @@ class Enemy(val direction: Point): Container() {
             onInfect()
         }
     }
-
+    
     fun die(onDie: () -> Unit) {
         state = State.DYING
         removeChildren()
@@ -113,15 +121,15 @@ class Enemy(val direction: Point): Container() {
         }
         dieSound.play()
         appearingView.playAnimation(reversed = true)
-        appearingView.onAnimationCompleted.once{
+        appearingView.onAnimationCompleted.once {
             state = Enemy.State.READY
             tint = Colors.WHITE
             onDie()
             removeChildren()
         }
     }
-
-    fun resetEnemy(): Unit{
+    
+    fun resetEnemy(): Unit {
         state = State.READY
         scale = 1.0
     }

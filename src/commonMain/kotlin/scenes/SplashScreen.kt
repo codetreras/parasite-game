@@ -14,19 +14,19 @@ import com.soywiz.korio.async.delay
 import com.soywiz.korio.file.std.resourcesVfs
 import util.LoadingProxyScene
 
-class SplashScreen: Scene() {
-
+class SplashScreen : Scene() {
+    
     private lateinit var bg: Image
     private lateinit var bgMusic: NativeSoundChannel
-
+    
     override suspend fun Container.sceneInit() {
         bgMusic = resourcesVfs["sounds/intro_loop.wav"].readMusic().play()
-        bg = image(resourcesVfs["graphics/splash_scene/intro_bg.png"].readBitmap()){
+        bg = image(resourcesVfs["graphics/splash_scene/intro_bg.png"].readBitmap()) {
             smoothing = false
             alpha = 0.0
         }
     }
-
+    
     override suspend fun sceneAfterInit() {
         bg.tween(bg::alpha[1.0], time = 1.seconds)
         delay(2.seconds)
@@ -35,10 +35,10 @@ class SplashScreen: Scene() {
                 LoadingProxyScene.NextScreen(MainScene::class),
                 time = .5.seconds)
     }
-
+    
     override suspend fun sceneBeforeLeaving() {
         sceneContainer.tween(bgMusic::volume[0.0], time = .4.seconds)
         bgMusic.stop()
     }
-
+    
 }
